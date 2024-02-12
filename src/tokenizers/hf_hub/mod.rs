@@ -2,8 +2,6 @@ use hf_hub::api::sync::{Api, ApiError};
 use hf_hub::{Repo, RepoType};
 use snafu::{ResultExt, Snafu};
 use std::collections::HashMap;
-use std::error::Error;
-use std::ops::Deref;
 
 use super::tokenizer::{TokenizerError, TokenizerFromConfigFiles};
 

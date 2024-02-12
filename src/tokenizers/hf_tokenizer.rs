@@ -45,7 +45,7 @@ impl HfTokenizer {
             match json_value {
                 serde_json::Value::Object(o) => o.get(piece_name).and_then(|piece| match piece {
                     serde_json::Value::String(s) => Some(s.clone()),
-                    serde_json::Value::Object(o) => lookup_piece(piece_name, json_value),
+                    serde_json::Value::Object(_) => lookup_piece(piece_name, json_value),
                     _ => None,
                 }),
                 _ => None,
@@ -207,5 +207,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tokenizer_has_correct_output() {}
+    fn tokenizer_can_load_from_hf_hub() {
+        let tokenizer = HfTokenizer::from_hf_hub("tiiuae/falcon-7b", None)
+            .expect("Failed to load tokenizer from HF Hub");
+        assert_eq!(tokenizer.eos_piece(), Some("<|endoftext|>"));
+
+        let tokenizer = HfTokenizer::from_hf_hub("bert-base-cased", None)
+            .expect("Failed to load tokenizer from HF Hub");
+        assert_eq!(tokenizer.eos_piece(), None);
+    }
 }

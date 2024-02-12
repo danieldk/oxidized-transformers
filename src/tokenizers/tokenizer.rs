@@ -1,11 +1,6 @@
-use std::{
-    collections::HashMap,
-    error::Error,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, error::Error, path::PathBuf};
 
-use super::hf_hub::{FromHFHub, FromHfHubError};
-use snafu::{ResultExt, Snafu};
+use snafu::Snafu;
 
 use super::pieces::PiecesWithIds;
 
