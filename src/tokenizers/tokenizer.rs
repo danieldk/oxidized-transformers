@@ -1,10 +1,11 @@
-use std::{collections::HashMap, error::Error, path::PathBuf};
+use crate::error::BoxedError;
 
 use snafu::Snafu;
 
 use super::pieces::PiecesWithIds;
 
 #[derive(Debug, Snafu)]
+#[snafu(visibility(pub(super)))]
 pub enum TokenizerError {
     #[snafu(display("Couldn't encode tokenizer inputs into pieces and ids"))]
     Encode { source: tokenizers::Error },
@@ -12,22 +13,8 @@ pub enum TokenizerError {
     #[snafu(display("Couldn't decode piece identifiers into strings"))]
     Decode { source: tokenizers::Error },
 
-    #[snafu(display("Missing tokenizer configuration file '{filename}'"))]
-    MissingConfigFile { filename: String },
-
     #[snafu(display("HuggingFace tokenizer error"))]
-    HFTokenizer {
-        source: Box<dyn Error + Send + Sync>,
-    },
-
-    #[snafu(display("Cannot open tokenizer config for reading: {path:?}"))]
-    OpenConfigFile {
-        path: PathBuf,
-        source: std::io::Error,
-    },
-
-    #[snafu(display("Cannot deserialize tokenizer JSON configuation"))]
-    DeserializeConfigJSON { source: serde_json::Error },
+    HFTokenizer { source: BoxedError },
 }
 
 pub enum TokenizerEncodeInput<I>
@@ -87,31 +74,4 @@ pub trait Tokenizer {
     /// Returns: The end-of-sequence piece or
     /// `None` when this piece is not defined.
     fn eos_piece(&self) -> Option<&str>;
-}
-
-/// Represents a configuration file of a tokenizer.
-#[derive(Debug, Clone, Default, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub struct TokenizerConfigFile {
-    /// Filename of the configuration file.
-    pub name: String,
-    /// If the file is optional.
-    pub optional: bool,
-}
-
-/// Trait implemented by tokenizers that can be loaded from configuration files.
-pub trait TokenizerFromConfigFiles
-where
-    Self: Sized,
-{
-    /// List of configuration files that can be used to construct the tokenizer.
-    ///
-    fn config_files() -> &'static [&'static TokenizerConfigFile];
-
-    /// Construct a tokenizer from configuration files.
-    ///
-    /// * config_files - A mapping of configuration files to their local paths.
-    ///   The local path can be `None` when the file is optional.
-    fn from_config_files(
-        config_files: HashMap<TokenizerConfigFile, Option<PathBuf>>,
-    ) -> Result<Self, TokenizerError>;
 }

@@ -1,24 +1,31 @@
+use std::error::Error;
+
+use crate::error::BoxedError;
 use hf_hub::api::sync::{Api, ApiError};
 use hf_hub::{Repo, RepoType};
 use snafu::{ResultExt, Snafu};
-use std::collections::HashMap;
 
-use super::tokenizer::{TokenizerError, TokenizerFromConfigFiles};
+use super::config::{TokenizerConfigWithPaths, TokenizerFromConfig};
 
 #[derive(Debug, Snafu)]
 pub enum FromHfHubError {
     #[snafu(display("Hugging Face Hub error"))]
     HFHub { source: ApiError },
 
-    #[snafu(display("Cannot construct tokenizer from configuration"))]
-    TokenizerFromConfig { source: TokenizerError },
+    #[snafu(display("Could not resolve filepath in tokenizer config"))]
+    ResolveConfigPaths { source: BoxedError },
+
+    #[snafu(display("Could not create tokenizer from config"))]
+    FromConfig { source: BoxedError },
 }
 
 /// Trait implemented by tokenziers that can be loaded from the Hugging Face Hub.
 pub trait FromHFHub
 where
-    Self: Sized + TokenizerFromConfigFiles,
+    Self: Sized + TokenizerFromConfig<Config = Self::TokenizerConfig>,
 {
+    type TokenizerConfig: TokenizerConfigWithPaths;
+
     /// Load a tokenizer from the Hugging Face Hub.
     ///
     /// * name - Name of the model on the Hugging Face Hub.
@@ -34,18 +41,18 @@ where
             revision,
         ));
 
-        let config_remote_paths = Self::config_files();
-        let mut config_local_paths = HashMap::with_capacity(config_remote_paths.len());
-        for file in config_remote_paths {
-            let path = if file.optional {
-                repo.download(&file.name).ok()
-            } else {
-                Some(repo.download(&file.name).context(HFHubSnafu)?)
-            };
+        let mut config = Self::default_config();
+        let path_resolver = |filename| {
+            repo.download(filename)
+                .context(HFHubSnafu)
+                .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)
+        };
 
-            config_local_paths.insert((*file).clone(), path);
-        }
+        config
+            .resolve_paths(path_resolver)
+            .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)
+            .context(ResolveConfigPathsSnafu)?;
 
-        Ok(Self::from_config_files(config_local_paths).context(TokenizerFromConfigSnafu)?)
+        Ok(Self::from_config(&config).context(FromConfigSnafu)?)
     }
 }
