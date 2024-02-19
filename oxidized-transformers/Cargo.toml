@@ -7,6 +7,7 @@ license = "MIT"
 homepage = "https://github.com/danieldk/oxidized-transformers"
 
 [dependencies]
+accelerate-src = { workspace = true, optional = true }
 candle-core = { workspace = true }
 candle-nn = { workspace = true }
 hf-hub = { workspace = true }

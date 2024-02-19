@@ -5,6 +5,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+accelerate-src = "0.3"
 approx = "0.5"
 candle-core = "0.4"
 candle-nn = "0.4"

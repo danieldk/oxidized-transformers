@@ -12,6 +12,10 @@ pub mod hf;
 mod llama;
 pub use llama::{LlamaCausalLM, LlamaDecoder};
 
+pub mod roberta;
+
 pub mod transformer;
+
+pub mod xlm_roberta;
 
 pub mod util;
