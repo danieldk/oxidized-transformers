@@ -1,7 +1,7 @@
 /// Traits for model architectures.
-mod causal_lm;
-
 use candle_nn::VarBuilder;
+
+mod causal_lm;
 pub use causal_lm::{BuildCausalLM, CausalLM, CausalLMOutput};
 
 mod decoder;

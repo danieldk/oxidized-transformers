@@ -47,7 +47,7 @@ pub trait EncoderLayer {
     fn forward_t(
         &self,
         piece_ids: &Tensor,
-        attention_mask: &AttentionMask,
+        mask: &AttentionMask,
         positions: Option<&Tensor>,
         train: bool,
     ) -> Result<Tensor, BoxedError>;

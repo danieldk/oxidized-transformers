@@ -49,6 +49,7 @@ impl LayerOutputs for CausalLMOutput {
 
 /// Trait for building causal language models.
 pub trait BuildCausalLM: Debug {
+    /// Causal language model type.
     type CausalLM: CausalLM;
 
     /// Build a causal language model.
