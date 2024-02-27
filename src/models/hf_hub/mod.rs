@@ -13,14 +13,10 @@ use crate::error::BoxedError;
 use crate::models::hf::{Checkpoint, CheckpointError};
 use crate::util::renaming_backend::RenamingBackend;
 
-pub trait TransformerFromConfig
-where
-    Self: Sized,
-{
-    type Config;
-    fn from_config(vb: VarBuilder, config: &Self::Config) -> Result<Self, BoxedError>
-    where
-        Self: Sized;
+pub trait BuildModel {
+    type Model;
+
+    fn build(&self, vb: VarBuilder) -> Result<Self::Model, BoxedError>;
 }
 
 #[derive(Debug, Snafu)]
@@ -32,22 +28,23 @@ pub enum FromHFError {
     ModelFromConfig { source: BoxedError },
 }
 
-pub trait FromHF
-where
-    Self: Sized + TransformerFromConfig,
-    Self::Config: TryFrom<Self::HFConfig, Error = BoxedError>,
-{
+pub trait FromHF {
+    type Config: BuildModel<Model = Self::Model> + TryFrom<Self::HFConfig, Error = BoxedError>;
+
     type HFConfig;
+
+    type Model;
 
     fn from_hf(
         hf_config: Self::HFConfig,
         backend: Box<dyn SimpleBackend>,
         device: Device,
-    ) -> Result<Self, FromHFError> {
+    ) -> Result<Self::Model, FromHFError> {
         let config = Self::Config::try_from(hf_config).context(ConvertConfigSnafu)?;
         let rename_backend = RenamingBackend::new(backend, Self::rename_parameters());
         let vb = VarBuilder::from_backend(Box::new(rename_backend), DType::F32, device);
-        Self::from_config(vb, &config).context(ModelFromConfigSnafu)
+        //Self::from_config(vb, &config).context(ModelFromConfigSnafu)
+        config.build(vb).context(ModelFromConfigSnafu)
     }
 
     fn rename_parameters() -> impl Fn(&str) -> String + Send + Sync;
@@ -78,11 +75,13 @@ pub trait FromHFHub
 where
     Self: Sized,
 {
+    type Model;
+
     fn from_hf_hub(
         name: &str,
         revision: Option<&str>,
         device: Device,
-    ) -> Result<Self, FromHfHubError>;
+    ) -> Result<Self::Model, FromHfHubError>;
 }
 
 impl<H, C, HC> FromHFHub for H
@@ -91,11 +90,13 @@ where
     HC: DeserializeOwned,
     C: TryFrom<HC, Error = BoxedError>,
 {
+    type Model = H::Model;
+
     fn from_hf_hub(
         name: &str,
         revision: Option<&str>,
         device: Device,
-    ) -> Result<Self, FromHfHubError> {
+    ) -> Result<Self::Model, FromHfHubError> {
         let revision = revision
             .map(ToOwned::to_owned)
             .unwrap_or_else(|| "main".to_string());

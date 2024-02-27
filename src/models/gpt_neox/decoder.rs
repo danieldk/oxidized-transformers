@@ -1,54 +1,26 @@
 use std::sync::OnceLock;
 
-use candle_core::Tensor;
-use candle_nn::VarBuilder;
+
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::architectures::{BuildDecoder, Decoder, DecoderOutput};
+
 use crate::error::BoxedError;
-use crate::kv_cache::KeyValueCache;
+
 use crate::layers::activation::Activation;
 use crate::layers::attention::{
-    AttentionHeads, AttentionMask, QkvMode, ScaledDotProductAttentionConfig, SelfAttentionConfig,
+    AttentionHeads, QkvMode, ScaledDotProductAttentionConfig, SelfAttentionConfig,
 };
 use crate::layers::dropout::DropoutConfig;
 use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::LayerNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf_hub::{FromHF, TransformerFromConfig};
+use crate::models::hf_hub::FromHF;
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
-pub struct GPTNeoXDecoder {
-    inner: TransformerDecoder,
-}
-
-impl Decoder for GPTNeoXDecoder {
-    type Cache = KeyValueCache;
-
-    fn forward_t(
-        &self,
-        piece_ids: &Tensor,
-        mask: &AttentionMask,
-        cache: &mut Self::Cache,
-        positions: Option<&Tensor>,
-        train: bool,
-    ) -> Result<DecoderOutput, BoxedError> {
-        self.inner
-            .forward_t(piece_ids, mask, cache, positions, train)
-    }
-}
-
-impl TransformerFromConfig for GPTNeoXDecoder {
-    type Config = TransformerDecoderConfig;
-
-    fn from_config(vb: VarBuilder, config: &Self::Config) -> Result<Self, BoxedError> {
-        Ok(Self {
-            inner: config.build(vb)?,
-        })
-    }
-}
+pub struct GPTNeoXDecoder;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct HFGPTNeoXConfig {
@@ -131,7 +103,11 @@ impl TryFrom<HFGPTNeoXConfig> for TransformerDecoderConfig {
 }
 
 impl FromHF for GPTNeoXDecoder {
+    type Config = TransformerDecoderConfig;
+
     type HFConfig = HFGPTNeoXConfig;
+
+    type Model = TransformerDecoder;
 
     fn rename_parameters() -> impl Fn(&str) -> String {
         |name| {

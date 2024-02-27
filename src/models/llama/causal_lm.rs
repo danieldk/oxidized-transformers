@@ -1,47 +1,19 @@
-use candle_core::Tensor;
-use candle_nn::VarBuilder;
+
+
 use serde::{Deserialize, Serialize};
 
-use crate::architectures::{BuildCausalLM, CausalLM, CausalLMOutput};
+
 use crate::error::BoxedError;
-use crate::kv_cache::KeyValueCache;
-use crate::layers::attention::AttentionMask;
-use crate::models::hf_hub::{FromHF, TransformerFromConfig};
+
+
+use crate::models::hf_hub::FromHF;
 use crate::models::llama::decoder::HFLlamaDecoderConfig;
 use crate::models::llama::LlamaDecoder;
 use crate::models::transformer::{
     TransformerCausalLM, TransformerCausalLMConfig, TransformerDecoderConfig,
 };
 
-pub struct LlamaCausalLM {
-    inner: TransformerCausalLM,
-}
-
-impl CausalLM for LlamaCausalLM {
-    type Cache = KeyValueCache;
-
-    fn forward_t(
-        &self,
-        piece_ids: &Tensor,
-        mask: &AttentionMask,
-        cache: &mut Self::Cache,
-        positions: Option<&Tensor>,
-        train: bool,
-    ) -> Result<CausalLMOutput, BoxedError> {
-        self.inner
-            .forward_t(piece_ids, mask, cache, positions, train)
-    }
-}
-
-impl TransformerFromConfig for LlamaCausalLM {
-    type Config = TransformerCausalLMConfig;
-
-    fn from_config(vb: VarBuilder, config: &Self::Config) -> Result<Self, BoxedError> {
-        Ok(Self {
-            inner: config.build(vb)?,
-        })
-    }
-}
+pub struct LlamaCausalLM;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct HfLlamaCausalLMConfig {
@@ -64,7 +36,11 @@ impl TryFrom<HfLlamaCausalLMConfig> for TransformerCausalLMConfig {
 }
 
 impl FromHF for LlamaCausalLM {
+    type Config = TransformerCausalLMConfig;
+
     type HFConfig = HfLlamaCausalLMConfig;
+
+    type Model = TransformerCausalLM;
 
     fn rename_parameters() -> impl Fn(&str) -> String {
         LlamaDecoder::rename_parameters()

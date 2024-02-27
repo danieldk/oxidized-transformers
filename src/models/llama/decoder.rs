@@ -1,51 +1,23 @@
 use std::sync::OnceLock;
 
-use candle_core::Tensor;
-use candle_nn::VarBuilder;
+
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::architectures::{BuildDecoder, Decoder, DecoderOutput};
+
 use crate::error::BoxedError;
-use crate::kv_cache::KeyValueCache;
+
 use crate::layers::activation::Activation;
-use crate::layers::attention::{AttentionHeads, AttentionMask, QkvMode, SelfAttentionConfig};
+use crate::layers::attention::{AttentionHeads, QkvMode, SelfAttentionConfig};
 use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::RMSNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf_hub::{FromHF, TransformerFromConfig};
+use crate::models::hf_hub::FromHF;
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
-pub struct LlamaDecoder {
-    inner: TransformerDecoder,
-}
-
-impl Decoder for LlamaDecoder {
-    type Cache = KeyValueCache;
-
-    fn forward_t(
-        &self,
-        piece_ids: &Tensor,
-        mask: &AttentionMask,
-        cache: &mut Self::Cache,
-        positions: Option<&Tensor>,
-        train: bool,
-    ) -> Result<DecoderOutput, BoxedError> {
-        self.inner
-            .forward_t(piece_ids, mask, cache, positions, train)
-    }
-}
-
-impl TransformerFromConfig for LlamaDecoder {
-    type Config = TransformerDecoderConfig;
-
-    fn from_config(vb: VarBuilder, config: &Self::Config) -> Result<Self, BoxedError> {
-        Ok(Self {
-            inner: config.build(vb)?,
-        })
-    }
-}
+pub struct LlamaDecoder;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct HFLlamaDecoderConfig {
@@ -113,7 +85,11 @@ impl TryFrom<HFLlamaDecoderConfig> for TransformerDecoderConfig {
 }
 
 impl FromHF for LlamaDecoder {
+    type Config = TransformerDecoderConfig;
+
     type HFConfig = HFLlamaDecoderConfig;
+
+    type Model = TransformerDecoder;
 
     fn rename_parameters() -> impl Fn(&str) -> String {
         |name| {
