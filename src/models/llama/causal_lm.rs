@@ -1,6 +1,7 @@
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
 use crate::architectures::{BuildCausalLM, CausalLM, CausalLMOutput};
@@ -8,8 +9,10 @@ use crate::error::BoxedError;
 use crate::kv_cache::KeyValueCache;
 use crate::layers::attention::AttentionMask;
 use crate::models::hf_hub::{FromHFHub, HFRenames, TransformerFromConfig};
-use crate::models::llama::config::HfLlamaCausalLMConfig;
-use crate::models::transformer::{TransformerCausalLM, TransformerCausalLMConfig};
+use crate::models::llama::decoder::HFLlamaDecoderConfig;
+use crate::models::transformer::{
+    TransformerCausalLM, TransformerCausalLMConfig, TransformerDecoderConfig,
+};
 
 pub struct LlamaCausalLM {
     inner: TransformerCausalLM,
@@ -38,6 +41,26 @@ impl TransformerFromConfig for LlamaCausalLM {
         Ok(Self {
             inner: config.build(vb)?,
         })
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct HfLlamaCausalLMConfig {
+    #[serde(flatten)]
+    decoder: HFLlamaDecoderConfig,
+}
+
+impl TryFrom<HfLlamaCausalLMConfig> for TransformerCausalLMConfig {
+    type Error = BoxedError;
+
+    fn try_from(config: HfLlamaCausalLMConfig) -> Result<Self, Self::Error> {
+        Ok(Self::default()
+            .hidden_size(config.decoder.hidden_size)
+            // Input and output vocab sizes are the same.
+            .n_pieces(config.decoder.vocab_size)
+            .decoder(Box::new(TransformerDecoderConfig::try_from(
+                config.decoder,
+            )?)))
     }
 }
 
