@@ -1,8 +1,6 @@
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
 
 use crate::architectures::{BuildCausalLM, CausalLM, CausalLMOutput};
 use crate::error::BoxedError;
@@ -10,6 +8,7 @@ use crate::kv_cache::KeyValueCache;
 use crate::layers::attention::AttentionMask;
 use crate::models::hf_hub::{FromHFHub, HFRenames, TransformerFromConfig};
 use crate::models::llama::decoder::HFLlamaDecoderConfig;
+use crate::models::llama::LlamaDecoder;
 use crate::models::transformer::{
     TransformerCausalLM, TransformerCausalLMConfig, TransformerDecoderConfig,
 };
@@ -70,43 +69,7 @@ impl FromHFHub for LlamaCausalLM {
 
 impl HFRenames for LlamaCausalLM {
     fn hf_renames() -> impl Fn(&str) -> String {
-        |name| {
-            let mut name = if name.starts_with("decoder.") {
-                name.replace("decoder.", "model.")
-            } else if !name.starts_with("output_embeddings") {
-                format!("model.{name}")
-            } else {
-                name.to_string()
-            };
-            name = name.replace("embeddings.piece_embeddings", "embed_tokens");
-
-            // Attention layer.
-            name = name.replace("attention.query", "attention.q_proj");
-            name = name.replace("attention.key", "attention.k_proj");
-            name = name.replace("attention.value", "attention.v_proj");
-            name = name.replace("attention.output", "attention.o_proj");
-            name = name.replace("attention.layer_norm", "input_layernorm");
-            name = name.replace("attention.", "self_attn.");
-
-            // Feed-forward layer.
-            name = name.replace("ffn.layer_norm", "post_attention_layernorm");
-            name = name.replace("ffn.output", "ffn.down_proj");
-            name = name.replace("ffn.", "mlp.");
-            name = name.replace("intermediate", "up_proj");
-            name = name.replace("gate", "gate_proj");
-
-            // Layer norm after all layers.
-            name = name.replace("output_layer_norm", "norm");
-
-            // Output vocab.
-            name = name.replace("output_embeddings", "lm_head");
-
-            static LAYER_RE: OnceLock<Regex> = OnceLock::new();
-            let layer_re =
-                LAYER_RE.get_or_init(|| Regex::new(r"layer_(\d+)").expect("Invalid regex"));
-            name = layer_re.replace(&name, "layers.$1").to_string();
-            name
-        }
+        LlamaDecoder::hf_renames()
     }
 }
 

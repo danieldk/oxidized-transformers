@@ -121,8 +121,10 @@ impl HFRenames for LlamaDecoder {
         |name| {
             let mut name = if name.starts_with("decoder.") {
                 name.replace("decoder.", "model.")
-            } else {
+            } else if !name.starts_with("output_embeddings") {
                 format!("model.{name}")
+            } else {
+                name.to_string()
             };
             name = name.replace("embeddings.piece_embeddings", "embed_tokens");
 
@@ -143,6 +145,9 @@ impl HFRenames for LlamaDecoder {
 
             // Layer norm after all layers.
             name = name.replace("output_layer_norm", "norm");
+
+            // Output vocab.
+            name = name.replace("output_embeddings", "lm_head");
 
             static LAYER_RE: OnceLock<Regex> = OnceLock::new();
             let layer_re =
