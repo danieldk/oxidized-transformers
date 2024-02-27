@@ -7,7 +7,6 @@ use crate::architectures::{BuildDecoder, CausalLM, CausalLMOutput, Decoder, Laye
 use crate::error::BoxedError;
 use crate::kv_cache::KeyValueCache;
 use crate::layers::attention::AttentionMask;
-use crate::models::hf_hub::BuildModel;
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
 /// Transformer causal language model configuration.
@@ -78,6 +77,7 @@ impl BuildArchitecture for TransformerCausalLMConfig {
     }
 }
 
+/*
 impl BuildModel for TransformerCausalLMConfig {
     type Model = TransformerCausalLM;
 
@@ -85,6 +85,7 @@ impl BuildModel for TransformerCausalLMConfig {
         BuildCausalLM::build(self, vb)
     }
 }
+ */
 
 /// `TransformerCausalLM` errors.
 #[derive(Debug, Snafu)]

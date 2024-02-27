@@ -14,7 +14,6 @@ use crate::layers::transformer::{
     TransformerEmbeddings, TransformerEmbeddingsConfig, TransformerEmbeddingsError,
     TransformerLayerConfig,
 };
-use crate::models::hf_hub::BuildModel;
 
 /// Transformer decoder configuration.
 #[derive(Debug)]
@@ -84,14 +83,6 @@ impl BuildArchitecture for TransformerDecoderConfig {
                 .build(vb.push_prefix("output_layer_norm"))
                 .context(BuildLayerNormSnafu)?,
         })
-    }
-}
-
-impl BuildModel for TransformerDecoderConfig {
-    type Model = TransformerDecoder;
-
-    fn build(&self, vb: VarBuilder) -> Result<TransformerDecoder, BoxedError> {
-        BuildDecoder::build(self, vb)
     }
 }
 

@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::path::PathBuf;
 
+use crate::architectures::BuildArchitecture;
 use candle_core::{DType, Device};
 use candle_nn::var_builder::SimpleBackend;
 use candle_nn::VarBuilder;
@@ -13,12 +14,6 @@ use crate::error::BoxedError;
 use crate::models::hf::{Checkpoint, CheckpointError};
 use crate::util::renaming_backend::RenamingBackend;
 
-pub trait BuildModel {
-    type Model;
-
-    fn build(&self, vb: VarBuilder) -> Result<Self::Model, BoxedError>;
-}
-
 #[derive(Debug, Snafu)]
 pub enum FromHFError {
     #[snafu(display("Cannot convert Hugging Face model config"))]
@@ -29,7 +24,8 @@ pub enum FromHFError {
 }
 
 pub trait FromHF {
-    type Config: BuildModel<Model = Self::Model> + TryFrom<Self::HFConfig, Error = BoxedError>;
+    type Config: BuildArchitecture<Architecture = Self::Model>
+        + TryFrom<Self::HFConfig, Error = BoxedError>;
 
     type HFConfig;
 
