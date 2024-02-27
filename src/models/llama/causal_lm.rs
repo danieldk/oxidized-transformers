@@ -6,7 +6,7 @@ use crate::architectures::{BuildCausalLM, CausalLM, CausalLMOutput};
 use crate::error::BoxedError;
 use crate::kv_cache::KeyValueCache;
 use crate::layers::attention::AttentionMask;
-use crate::models::hf_hub::{FromHFHub, HFRenames, TransformerFromConfig};
+use crate::models::hf_hub::{FromHF, TransformerFromConfig};
 use crate::models::llama::decoder::HFLlamaDecoderConfig;
 use crate::models::llama::LlamaDecoder;
 use crate::models::transformer::{
@@ -63,13 +63,11 @@ impl TryFrom<HfLlamaCausalLMConfig> for TransformerCausalLMConfig {
     }
 }
 
-impl FromHFHub for LlamaCausalLM {
+impl FromHF for LlamaCausalLM {
     type HFConfig = HfLlamaCausalLMConfig;
-}
 
-impl HFRenames for LlamaCausalLM {
-    fn hf_renames() -> impl Fn(&str) -> String {
-        LlamaDecoder::hf_renames()
+    fn rename_parameters() -> impl Fn(&str) -> String {
+        LlamaDecoder::rename_parameters()
     }
 }
 

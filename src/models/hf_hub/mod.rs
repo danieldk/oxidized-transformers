@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
 use candle_core::{DType, Device};
+use candle_nn::var_builder::SimpleBackend;
 use candle_nn::VarBuilder;
 use hf_hub::api::sync::{Api, ApiError};
 use hf_hub::{Repo, RepoType};
@@ -23,18 +23,40 @@ where
         Self: Sized;
 }
 
-pub trait FromHFStateDict {
-    fn from_hf_state_dict<T>(params: &HashMap<impl AsRef<str>, T>) -> HashMap<String, T>;
+#[derive(Debug, Snafu)]
+pub enum FromHFError {
+    #[snafu(display("Cannot convert Hugging Face model config"))]
+    ConvertConfig { source: BoxedError },
+
+    #[snafu(display("Cannot construct model from configuration"))]
+    ModelFromConfig { source: BoxedError },
 }
 
-pub trait HFRenames {
-    fn hf_renames() -> impl Fn(&str) -> String + Send + Sync;
+pub trait FromHF
+where
+    Self: Sized + TransformerFromConfig,
+    Self::Config: TryFrom<Self::HFConfig, Error = BoxedError>,
+{
+    type HFConfig;
+
+    fn from_hf(
+        hf_config: Self::HFConfig,
+        backend: Box<dyn SimpleBackend>,
+        device: Device,
+    ) -> Result<Self, FromHFError> {
+        let config = Self::Config::try_from(hf_config).context(ConvertConfigSnafu)?;
+        let rename_backend = RenamingBackend::new(backend, Self::rename_parameters());
+        let vb = VarBuilder::from_backend(Box::new(rename_backend), DType::F32, device);
+        Self::from_config(vb, &config).context(ModelFromConfigSnafu)
+    }
+
+    fn rename_parameters() -> impl Fn(&str) -> String + Send + Sync;
 }
 
 #[derive(Debug, Snafu)]
 pub enum FromHfHubError {
-    #[snafu(display("Cannot convert Hugging Face model config"))]
-    ConvertConfig { source: BoxedError },
+    #[snafu(display("Cannot convert Hugging Face model"))]
+    FromHF { source: FromHFError },
 
     #[snafu(display("Hugging Face Hub error"))]
     HFHub { source: ApiError },
@@ -45,9 +67,6 @@ pub enum FromHfHubError {
     #[snafu(display("Cannot open or load checkpoint"))]
     LoadCheckpoint { source: CheckpointError },
 
-    #[snafu(display("Cannot construct model from configuration"))]
-    ModelFromConfig { source: BoxedError },
-
     #[snafu(display("Cannot open file for reading: {path:?}"))]
     Open {
         path: PathBuf,
@@ -57,11 +76,21 @@ pub enum FromHfHubError {
 
 pub trait FromHFHub
 where
-    Self: Sized + HFRenames + TransformerFromConfig,
-    Self::Config: TryFrom<Self::HFConfig, Error = BoxedError>,
+    Self: Sized,
 {
-    type HFConfig: DeserializeOwned;
+    fn from_hf_hub(
+        name: &str,
+        revision: Option<&str>,
+        device: Device,
+    ) -> Result<Self, FromHfHubError>;
+}
 
+impl<H, C, HC> FromHFHub for H
+where
+    H: FromHF<Config = C, HFConfig = HC>,
+    HC: DeserializeOwned,
+    C: TryFrom<HC, Error = BoxedError>,
+{
     fn from_hf_hub(
         name: &str,
         revision: Option<&str>,
@@ -78,14 +107,12 @@ where
         ));
         let config_path = repo.get("config.json").context(HFHubSnafu)?;
         let config_file = File::open(&config_path).context(OpenSnafu { path: config_path })?;
-        let hf_config: Self::HFConfig = serde_json::from_reader(config_file).context(JSONSnafu)?;
-        let config = Self::Config::try_from(hf_config).context(ConvertConfigSnafu)?;
+        let hf_config: HC = serde_json::from_reader(config_file).context(JSONSnafu)?;
 
         let backend = Checkpoint::SafeTensors
             .load(&repo)
             .context(LoadCheckpointSnafu)?;
-        let rename_backend = RenamingBackend::new(backend, Self::hf_renames());
-        let vb = VarBuilder::from_backend(Box::new(rename_backend), DType::F32, device);
-        Self::from_config(vb, &config).context(ModelFromConfigSnafu)
+
+        Self::from_hf(hf_config, backend, device).context(FromHFSnafu)
     }
 }

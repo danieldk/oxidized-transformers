@@ -14,7 +14,7 @@ use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::RMSNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf_hub::{FromHFHub, HFRenames, TransformerFromConfig};
+use crate::models::hf_hub::{FromHF, TransformerFromConfig};
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
 pub struct LlamaDecoder {
@@ -112,12 +112,10 @@ impl TryFrom<HFLlamaDecoderConfig> for TransformerDecoderConfig {
     }
 }
 
-impl FromHFHub for LlamaDecoder {
+impl FromHF for LlamaDecoder {
     type HFConfig = HFLlamaDecoderConfig;
-}
 
-impl HFRenames for LlamaDecoder {
-    fn hf_renames() -> impl Fn(&str) -> String {
+    fn rename_parameters() -> impl Fn(&str) -> String {
         |name| {
             let mut name = if name.starts_with("decoder.") {
                 name.replace("decoder.", "model.")

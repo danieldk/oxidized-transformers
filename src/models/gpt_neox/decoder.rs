@@ -17,7 +17,7 @@ use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::LayerNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf_hub::{FromHFHub, HFRenames, TransformerFromConfig};
+use crate::models::hf_hub::{FromHF, TransformerFromConfig};
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
 pub struct GPTNeoXDecoder {
@@ -130,12 +130,10 @@ impl TryFrom<HFGPTNeoXConfig> for TransformerDecoderConfig {
     }
 }
 
-impl FromHFHub for GPTNeoXDecoder {
+impl FromHF for GPTNeoXDecoder {
     type HFConfig = HFGPTNeoXConfig;
-}
 
-impl HFRenames for GPTNeoXDecoder {
-    fn hf_renames() -> impl Fn(&str) -> String {
+    fn rename_parameters() -> impl Fn(&str) -> String {
         |name| {
             let mut name = if name.starts_with("decoder.") {
                 name.replace("decoder.", "gpt_neox.")
