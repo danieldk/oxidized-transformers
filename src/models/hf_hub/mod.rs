@@ -19,8 +19,8 @@ pub enum FromHFError {
     #[snafu(display("Cannot convert Hugging Face model config"))]
     ConvertConfig { source: BoxedError },
 
-    #[snafu(display("Cannot construct model from configuration"))]
-    ModelFromConfig { source: BoxedError },
+    #[snafu(display("Cannot build model"))]
+    BuildModel { source: BoxedError },
 }
 
 pub trait FromHF {
@@ -39,8 +39,7 @@ pub trait FromHF {
         let config = Self::Config::try_from(hf_config).context(ConvertConfigSnafu)?;
         let rename_backend = RenamingBackend::new(backend, Self::rename_parameters());
         let vb = VarBuilder::from_backend(Box::new(rename_backend), DType::F32, device);
-        //Self::from_config(vb, &config).context(ModelFromConfigSnafu)
-        config.build(vb).context(ModelFromConfigSnafu)
+        config.build(vb).context(BuildModelSnafu)
     }
 
     fn rename_parameters() -> impl Fn(&str) -> String + Send + Sync;
@@ -80,13 +79,13 @@ where
     ) -> Result<Self::Model, FromHfHubError>;
 }
 
-impl<H, C, HC> FromHFHub for H
+impl<HF, C, HC> FromHFHub for HF
 where
-    H: FromHF<Config = C, HFConfig = HC>,
+    HF: FromHF<Config = C, HFConfig = HC>,
     HC: DeserializeOwned,
     C: TryFrom<HC, Error = BoxedError>,
 {
-    type Model = H::Model;
+    type Model = HF::Model;
 
     fn from_hf_hub(
         name: &str,
