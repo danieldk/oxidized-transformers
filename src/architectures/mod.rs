@@ -10,7 +10,7 @@ mod decoder;
 pub use decoder::{BuildDecoder, BuildDecoderLayer, Decoder, DecoderLayer, DecoderOutput};
 
 mod encoder;
-pub use encoder::{BuildEncoderLayer, EncoderLayer, EncoderOutput};
+pub use encoder::{BuildEncoder, BuildEncoderLayer, Encoder, EncoderLayer, EncoderOutput};
 
 mod output;
 use crate::error::BoxedError;

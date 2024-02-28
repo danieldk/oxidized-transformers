@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use crate::architectures::BuildArchitecture;
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
 
@@ -26,6 +27,51 @@ impl LayerOutputs for EncoderOutput {
     fn embedding_layer_output(&self) -> Option<&Tensor> {
         self.all_outputs.first()
     }
+}
+
+/// Trait for building encoders.
+pub trait BuildEncoder: Debug {
+    /// Encoder type.
+    type Encoder: Encoder;
+
+    /// Build an encoder.
+    fn build(&self, vb: VarBuilder) -> Result<Self::Encoder, BoxedError>;
+}
+
+impl<D> BuildEncoder for D
+where
+    D: BuildArchitecture + Debug,
+    D::Architecture: Encoder,
+{
+    type Encoder = D::Architecture;
+
+    fn build(&self, vb: VarBuilder) -> Result<Self::Encoder, BoxedError> {
+        self.build(vb)
+    }
+}
+
+/// Trait for encoders.
+pub trait Encoder {
+    /// Encode an input sequence.
+    ///
+    /// Returns the encoder output.
+    ///
+    /// * `piece_ids` - Input sequence.
+    ///   *Shape:* `(batch_size, seq_len)`
+    /// * `attention_mask` - Attention mask. Sequence elements for which the
+    ///   corresponding mask element is set to `false` are ignored during
+    ///   attention calculation.
+    ///   *Shape:* `(batch_size, seq_len)`
+    /// * `positions` - Input positions.
+    ///   *Shape:* `(batch_size, seq_len)`
+    /// * `train` - Whether to train the layer.
+    fn forward_t(
+        &self,
+        piece_ids: &Tensor,
+        attention_mask: &AttentionMask,
+        positions: Option<&Tensor>,
+        train: bool,
+    ) -> Result<EncoderOutput, BoxedError>;
 }
 
 /// Trait for encoder layers.

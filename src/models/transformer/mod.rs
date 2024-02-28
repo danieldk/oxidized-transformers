@@ -4,3 +4,5 @@ pub use causal_lm::{TransformerCausalLM, TransformerCausalLMConfig, TransformerC
 
 mod decoder;
 pub use decoder::{TransformerDecoder, TransformerDecoderConfig, TransformerDecoderError};
+mod encoder;
+pub use encoder::{TransformerEncoder, TransformerEncoderConfig, TransformerEncoderError};
