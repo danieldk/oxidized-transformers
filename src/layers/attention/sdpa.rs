@@ -108,7 +108,7 @@ impl AttentionScorer for ScaledDotProductAttention {
         // Calculate attention scores.
         let mut attn_scores = key
             .transpose(3, 2)
-            .and_then(|xs| query.broadcast_matmul(&xs))
+            .and_then(|xs| query.broadcast_matmul(&xs.contiguous().unwrap()))
             .context(AttentionScoresSnafu)?;
 
         let model_width = key.dim(3).context(TemperatureSnafu)?;

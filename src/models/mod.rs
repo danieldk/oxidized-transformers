@@ -6,4 +6,6 @@ pub mod hf_hub;
 
 pub mod llama;
 
+pub mod roberta;
+
 pub mod transformer;

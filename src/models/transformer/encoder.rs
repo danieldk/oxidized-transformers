@@ -3,21 +3,18 @@ use candle_core::{ModuleT, Tensor};
 use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
 
-use crate::architectures::BuildArchitecture;
+use crate::architectures::{BuildArchitecture, BuildEmbeddings, Embeddings};
 use crate::architectures::{BuildEncoderLayer, Encoder, EncoderLayer, EncoderOutput};
 use crate::error::BoxedError;
 use crate::layers::attention::AttentionMask;
 use crate::layers::build_module::BuildModule;
 use crate::layers::identity::Identity;
-use crate::layers::transformer::{
-    TransformerEmbeddings, TransformerEmbeddingsConfig, TransformerEmbeddingsError,
-    TransformerLayerConfig,
-};
+use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
 
 /// Transformer encoder configuration.
 #[derive(Debug)]
 pub struct TransformerEncoderConfig {
-    embeddings: TransformerEmbeddingsConfig,
+    embeddings: Box<dyn BuildEmbeddings>,
     layer: Box<dyn BuildEncoderLayer>,
     n_hidden_layers: usize,
     output_layer_norm: Box<dyn BuildModule>,
@@ -27,7 +24,7 @@ impl TransformerEncoderConfig {
     /// Encoder embeddings.
     ///
     /// Default: `TransformerEmbeddingsConfig::default()`
-    pub fn embeddings(mut self, embeddings: TransformerEmbeddingsConfig) -> Self {
+    pub fn embeddings(mut self, embeddings: Box<dyn BuildEmbeddings>) -> Self {
         self.embeddings = embeddings;
         self
     }
@@ -88,7 +85,7 @@ impl BuildArchitecture for TransformerEncoderConfig {
 impl Default for TransformerEncoderConfig {
     fn default() -> Self {
         Self {
-            embeddings: TransformerEmbeddingsConfig::default(),
+            embeddings: Box::<TransformerEmbeddingsConfig>::default(),
             layer: Box::<TransformerLayerConfig>::default(),
             n_hidden_layers: 12,
             output_layer_norm: Box::new(Identity),
@@ -103,13 +100,13 @@ pub enum TransformerEncoderError {
     BuildLayerNorm { source: BoxedError },
 
     #[snafu(display("Cannot construct or apply embeddings"))]
-    BuildTransformerEmbeddings { source: TransformerEmbeddingsError },
+    BuildTransformerEmbeddings { source: BoxedError },
 
     #[snafu(display("Cannot build transformer layer"))]
     BuildTransformerLayer { source: BoxedError },
 
     #[snafu(display("Cannot construct or apply embeddings"))]
-    Embedding { source: TransformerEmbeddingsError },
+    Embedding { source: BoxedError },
 
     #[snafu(display("Cannot construct or apply layer norm"))]
     LayerNorm { source: candle_core::Error },
@@ -120,7 +117,7 @@ pub enum TransformerEncoderError {
 
 /// Encoder using the transformer architecture.
 pub struct TransformerEncoder {
-    embeddings: TransformerEmbeddings,
+    embeddings: Box<dyn Embeddings>,
     layers: Vec<Box<dyn EncoderLayer>>,
     output_layer_norm: Box<dyn ModuleT>,
 }

@@ -502,6 +502,8 @@ impl SplitHeads for Tensor {
         let head_width = model_width / n_heads;
         self.reshape((batch_size, seq_len, n_heads, head_width))
             .and_then(|heads| heads.transpose(1, 2))
+            // Needs to be contiguous to avoid matmul stride error in SDPA.
+            .and_then(|heads| heads.contiguous())
             .context(SplitHeadsSnafu)
     }
 }

@@ -12,7 +12,11 @@ pub use decoder::{BuildDecoder, BuildDecoderLayer, Decoder, DecoderLayer, Decode
 mod encoder;
 pub use encoder::{BuildEncoder, BuildEncoderLayer, Encoder, EncoderLayer, EncoderOutput};
 
+mod embeddings;
+pub use embeddings::{BuildEmbeddings, Embeddings};
+
 mod output;
+
 use crate::error::BoxedError;
 pub use output::LayerOutputs;
 
