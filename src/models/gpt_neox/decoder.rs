@@ -1,10 +1,7 @@
 use std::sync::OnceLock;
 
-
-
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-
 
 use crate::error::BoxedError;
 
@@ -23,11 +20,11 @@ use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 pub struct GPTNeoXDecoder;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct HFGPTNeoXConfig {
+pub struct HFGPTNeoXDecoderConfig {
     attention_probs_dropout_prob: f32,
     hidden_act: Activation,
     hidden_dropout_prob: f32,
-    hidden_size: usize,
+    pub(crate) hidden_size: usize,
     initializer_range: f32,
     intermediate_size: usize,
     layer_norm_eps: f32,
@@ -40,13 +37,13 @@ pub struct HFGPTNeoXConfig {
     tie_word_embeddings: bool,
     type_vocab_size: usize,
     use_parallel_residual: bool,
-    vocab_size: usize,
+    pub(crate) vocab_size: usize,
 }
 
-impl TryFrom<HFGPTNeoXConfig> for TransformerDecoderConfig {
+impl TryFrom<HFGPTNeoXDecoderConfig> for TransformerDecoderConfig {
     type Error = BoxedError;
 
-    fn try_from(hf_config: HFGPTNeoXConfig) -> Result<Self, Self::Error> {
+    fn try_from(hf_config: HFGPTNeoXDecoderConfig) -> Result<Self, Self::Error> {
         let attention_dropout =
             Box::new(DropoutConfig::default().p(hf_config.attention_probs_dropout_prob));
 
@@ -105,7 +102,7 @@ impl TryFrom<HFGPTNeoXConfig> for TransformerDecoderConfig {
 impl FromHF for GPTNeoXDecoder {
     type Config = TransformerDecoderConfig;
 
-    type HFConfig = HFGPTNeoXConfig;
+    type HFConfig = HFGPTNeoXDecoderConfig;
 
     type Model = TransformerDecoder;
 
@@ -113,8 +110,10 @@ impl FromHF for GPTNeoXDecoder {
         |name| {
             let mut name = if name.starts_with("decoder.") {
                 name.replace("decoder.", "gpt_neox.")
-            } else {
+            } else if !name.starts_with("output_embeddings") {
                 format!("gpt_neox.{name}")
+            } else {
+                name.to_string()
             };
 
             // Embedding layer.
@@ -133,6 +132,9 @@ impl FromHF for GPTNeoXDecoder {
 
             // Layer norm after all layers.
             name = name.replace("output_layer_norm", "final_layer_norm");
+
+            // Output embeddings.
+            name = name.replace("output_embeddings", "embed_out");
 
             static LAYER_RE: OnceLock<Regex> = OnceLock::new();
             let layer_re =
