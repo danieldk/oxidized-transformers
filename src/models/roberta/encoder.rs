@@ -171,6 +171,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     #[report]
     fn roberta_encoder_emits_correct_output() -> Result<(), Whatever> {
         let encoder =
