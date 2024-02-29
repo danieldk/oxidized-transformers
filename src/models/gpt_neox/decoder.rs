@@ -14,7 +14,7 @@ use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::LayerNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf_hub::FromHF;
+use crate::models::hf::FromHF;
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
 pub struct GPTNeoXDecoder;
@@ -155,7 +155,7 @@ mod tests {
     use crate::kv_cache::KeyValueCache;
     use crate::layers::attention::AttentionMask;
     use crate::models::gpt_neox::GPTNeoXDecoder;
-    use crate::models::hf_hub::FromHFHub;
+    use crate::models::hf::FromHFHub;
     use crate::util::tests::assert_tensor_eq;
 
     #[test]

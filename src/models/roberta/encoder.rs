@@ -12,7 +12,7 @@ use crate::layers::dropout::DropoutConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::LayerNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf_hub::FromHF;
+use crate::models::hf::FromHF;
 use crate::models::roberta::embeddings::RobertaEmbeddingsConfig;
 use crate::models::transformer::{TransformerEncoder, TransformerEncoderConfig};
 
@@ -149,7 +149,7 @@ mod tests {
 
     use crate::architectures::{Encoder, LayerOutputs};
     use crate::layers::attention::AttentionMask;
-    use crate::models::hf_hub::FromHFHub;
+    use crate::models::hf::FromHFHub;
     use crate::models::roberta::encoder::RobertaEncoder;
     use crate::util::tests::assert_tensor_eq;
 

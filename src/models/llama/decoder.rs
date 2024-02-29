@@ -1,10 +1,7 @@
 use std::sync::OnceLock;
 
-
-
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-
 
 use crate::error::BoxedError;
 
@@ -14,7 +11,7 @@ use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::RMSNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf_hub::FromHF;
+use crate::models::hf::FromHF;
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
 pub struct LlamaDecoder;
@@ -141,7 +138,7 @@ mod tests {
     use crate::architectures::{Decoder, LayerOutputs};
     use crate::kv_cache::KeyValueCache;
     use crate::layers::attention::AttentionMask;
-    use crate::models::hf_hub::FromHFHub;
+    use crate::models::hf::FromHFHub;
     use crate::models::llama::LlamaDecoder;
     use crate::util::tests::assert_tensor_eq;
 

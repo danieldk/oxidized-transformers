@@ -4,12 +4,13 @@ use std::io;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
-use crate::error::BoxedError;
-use crate::repository::repo::Repo;
 use candle_core::safetensors::MmapedSafetensors;
 use candle_nn::var_builder::SimpleBackend;
 use serde::Deserialize;
 use snafu::{ResultExt, Snafu};
+
+use crate::error::BoxedError;
+use crate::repository::repo::Repo;
 
 static SAFETENSORS_INDEX: &str = "model.safetensors.index.json";
 static SAFETENSORS_SINGLE: &str = "model.safetensors";

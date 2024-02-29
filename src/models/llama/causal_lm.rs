@@ -1,12 +1,8 @@
-
-
 use serde::{Deserialize, Serialize};
 
-
 use crate::error::BoxedError;
+use crate::models::hf::FromHF;
 
-
-use crate::models::hf_hub::FromHF;
 use crate::models::llama::decoder::HFLlamaDecoderConfig;
 use crate::models::llama::LlamaDecoder;
 use crate::models::transformer::{
@@ -56,7 +52,7 @@ mod tests {
     use crate::architectures::CausalLM;
     use crate::kv_cache::KeyValueCache;
     use crate::layers::attention::AttentionMask;
-    use crate::models::hf_hub::FromHFHub;
+    use crate::models::hf::FromHFHub;
     use crate::models::llama::causal_lm::LlamaCausalLM;
     use crate::util::tests::assert_tensor_eq;
 

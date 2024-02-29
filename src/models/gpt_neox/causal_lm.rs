@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::BoxedError;
 use crate::models::gpt_neox::decoder::HFGPTNeoXDecoderConfig;
 use crate::models::gpt_neox::GPTNeoXDecoder;
-
-use crate::models::hf_hub::FromHF;
+use crate::models::hf::FromHF;
 use crate::models::transformer::{
     TransformerCausalLM, TransformerCausalLMConfig, TransformerDecoderConfig,
 };
@@ -53,7 +52,7 @@ mod tests {
     use crate::kv_cache::KeyValueCache;
     use crate::layers::attention::AttentionMask;
     use crate::models::gpt_neox::causal_lm::GPTNeoXCausalLM;
-    use crate::models::hf_hub::FromHFHub;
+    use crate::models::hf::FromHFHub;
     use crate::util::tests::assert_tensor_eq;
 
     fn sample_inputs() -> Result<(Tensor, Tensor), Whatever> {
