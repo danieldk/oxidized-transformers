@@ -6,8 +6,8 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::error::BoxedError;
+use crate::models::hf::checkpoint::LoadHFCheckpoint;
 use crate::models::hf::from_hf::{FromHF, FromHFError};
-use crate::models::hf::{HFCheckpoint, HFCheckpointError};
 use crate::repository::hf_hub::HfHubRepo;
 use crate::repository::repo::Repo;
 
@@ -29,7 +29,7 @@ pub enum FromHfHubError {
     JSON { source: serde_json::Error },
 
     #[snafu(display("Cannot open or load checkpoint"))]
-    LoadCheckpoint { source: HFCheckpointError },
+    LoadCheckpoint { source: BoxedError },
 
     #[snafu(display("Cannot open file for reading: {path:?}"))]
     Open {
@@ -70,9 +70,7 @@ where
         let config_file = File::open(&config_path).context(OpenSnafu { path: config_path })?;
         let hf_config: HC = serde_json::from_reader(config_file).context(JSONSnafu)?;
 
-        let backend = HFCheckpoint::SafeTensors
-            .load(&repo)
-            .context(LoadCheckpointSnafu)?;
+        let backend = repo.load_hf_checkpoint().context(LoadCheckpointSnafu)?;
 
         Self::from_hf(hf_config, backend, device).context(FromHFSnafu)
     }

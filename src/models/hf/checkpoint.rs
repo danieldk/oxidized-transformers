@@ -7,13 +7,17 @@ use std::path::{Path, PathBuf};
 use candle_core::safetensors::MmapedSafetensors;
 use candle_nn::var_builder::SimpleBackend;
 use serde::Deserialize;
-use snafu::{ResultExt, Snafu};
+use snafu::{ensure, ResultExt, Snafu};
 
 use crate::error::BoxedError;
 use crate::repository::repo::Repo;
 
 static SAFETENSORS_INDEX: &str = "model.safetensors.index.json";
 static SAFETENSORS_SINGLE: &str = "model.safetensors";
+
+pub trait LoadHFCheckpoint {
+    fn load_hf_checkpoint(&self) -> Result<Box<dyn SimpleBackend>, BoxedError>;
+}
 
 #[derive(Debug, Snafu)]
 pub enum HFCheckpointError {
@@ -45,67 +49,85 @@ pub enum HFCheckpoint {
     SafeTensors,
 }
 
-impl HFCheckpoint {
-    pub fn load(self, repo: &impl Repo) -> Result<Box<dyn SimpleBackend>, HFCheckpointError> {
-        match self {
-            HFCheckpoint::SafeTensors => Self::load_safetensors(repo),
-        }
+impl<R> LoadHFCheckpoint for R
+where
+    R: Repo,
+{
+    fn load_hf_checkpoint(&self) -> Result<Box<dyn SimpleBackend>, BoxedError> {
+        self.load_safetensors()
     }
+}
 
-    fn load_safetensors(repo: &impl Repo) -> Result<Box<dyn SimpleBackend>, HFCheckpointError> {
-        let file = repo.file(SAFETENSORS_INDEX).context(IndexSnafu {
+/// Private trait for loading safetensors checkpoint.
+///
+/// This trait is used to load a safetensors checkpoint from the repository.
+/// We just use it so that we can implement these methods on `Repo` rather
+/// than having them as standalone functions.
+trait LoadHFSafeTensors {
+    fn load_safetensors(&self) -> Result<Box<dyn SimpleBackend>, BoxedError>;
+
+    fn load_safetensors_multi(&self, index_path: &Path) -> Result<Vec<PathBuf>, BoxedError>;
+
+    fn load_safetensors_single(&self) -> Result<Vec<PathBuf>, BoxedError>;
+}
+
+impl<R> LoadHFSafeTensors for R
+where
+    R: Repo,
+{
+    fn load_safetensors(&self) -> Result<Box<dyn SimpleBackend>, BoxedError> {
+        let file = self.file(SAFETENSORS_INDEX).context(IndexSnafu {
             path: SAFETENSORS_INDEX,
         })?;
+
         let paths = match file {
-            Some(index_path) => Self::load_safetensors_multi(repo, index_path),
-            None => Self::load_safetensors_single(repo),
+            // We have a safetensor index, so load from shards.
+            Some(index_path) => self.load_safetensors_multi(&index_path),
+
+            // No index file, so assume that there is a single checkpoint.
+            None => self.load_safetensors_single(),
         }?;
 
         Ok(Box::new(unsafe {
             MmapedSafetensors::multi(&paths).context(LoadCheckpointSnafu)?
         }))
     }
-    fn load_safetensors_multi(
-        repo: &impl Repo,
-        index_path: impl AsRef<Path>,
-    ) -> Result<Vec<PathBuf>, HFCheckpointError> {
+
+    /// Load sharded safetensors checkpoint.
+    fn load_safetensors_multi(&self, index_path: &Path) -> Result<Vec<PathBuf>, BoxedError> {
         // Parse the shard index.
-        let index_path = index_path.as_ref();
         let index_file = BufReader::new(
             File::open(index_path).context(OpenSafeTensorsIndexSnafu { path: index_path })?,
         );
         let index: SafeTensorsIndex = serde_json::from_reader(index_file)
             .context(ParseSafeTensorsIndexSnafu { path: index_path })?;
 
-        // Get shards.
-        let shards = index
-            .shards()
-            .into_iter()
-            .map(|shard_name| {
-                repo.file(&shard_name)
-                    .context(DownloadSnafu {
-                        name: shard_name.clone(),
-                    })
-                    .and_then(|f| {
-                        f.ok_or(HFCheckpointError::NonExistentShard {
-                            name: shard_name.clone(),
-                        })
-                    })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut shards = Vec::with_capacity(index.shards().len());
+        for shard_name in index.shards() {
+            let path = self.file(&shard_name).context(DownloadSnafu {
+                name: shard_name.clone(),
+            })?;
+            ensure!(path.is_some(), NonExistentShardSnafu { name: shard_name });
+            shards.push(path.unwrap());
+        }
 
         Ok(shards)
     }
 
-    fn load_safetensors_single(repo: &impl Repo) -> Result<Vec<PathBuf>, HFCheckpointError> {
-        let file = repo.file(SAFETENSORS_SINGLE).context(DownloadSnafu {
+    /// Load non-sharded safetensors checkpoint.
+    fn load_safetensors_single(&self) -> Result<Vec<PathBuf>, BoxedError> {
+        let path = self.file(SAFETENSORS_SINGLE).context(DownloadSnafu {
             name: SAFETENSORS_SINGLE,
         })?;
-        let path = file.ok_or(HFCheckpointError::NonExistentShard {
-            name: SAFETENSORS_SINGLE.to_string(),
-        })?;
 
-        Ok(vec![path])
+        ensure!(
+            path.is_some(),
+            NonExistentShardSnafu {
+                name: SAFETENSORS_SINGLE.to_string(),
+            }
+        );
+
+        Ok(vec![path.unwrap()])
     }
 }
 
