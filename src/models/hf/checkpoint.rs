@@ -15,20 +15,26 @@ use crate::repository::repo::Repo;
 static SAFETENSORS_INDEX: &str = "model.safetensors.index.json";
 static SAFETENSORS_SINGLE: &str = "model.safetensors";
 
+/// Extension trait for HF transformers checkpoint loading.
+///
+/// This trait has a single implementation that adds support to `Repo` for
+/// loading Hugging Face transformers-style checkpoints from a repository.
 pub trait LoadHFCheckpoint {
+    /// Load a Hugging Face transformers checkpoint.
     fn load_hf_checkpoint(&self) -> Result<Box<dyn SimpleBackend>, BoxedError>;
 }
 
+/// HF transformers checkpoint loading errors.
 #[derive(Debug, Snafu)]
 pub enum HFCheckpointError {
     #[snafu(display("Cannot download checkpoint: {name}"))]
     Download { source: BoxedError, name: String },
 
-    #[snafu(display("Cannot get file from index {}", path.to_string_lossy()))]
-    Index { source: BoxedError, path: PathBuf },
-
     #[snafu(display("Cannot open or load checkpoint"))]
     LoadCheckpoint { source: candle_core::Error },
+
+    #[snafu(display("Checkpoint does not exist: {}", name))]
+    NonExistentCheckpoint { name: String },
 
     #[snafu(display("Shard does not exist: {}", name))]
     NonExistentShard { name: String },
@@ -41,12 +47,6 @@ pub enum HFCheckpointError {
         source: serde_json::Error,
         path: PathBuf,
     },
-}
-
-#[derive(Copy, Clone, Debug)]
-#[non_exhaustive]
-pub enum HFCheckpoint {
-    SafeTensors,
 }
 
 impl<R> LoadHFCheckpoint for R
@@ -75,9 +75,14 @@ impl<R> LoadHFSafeTensors for R
 where
     R: Repo,
 {
+    /// Load a safetensors checkpoint.
+    ///
+    /// This method will first probe if there is a shard index. If there is,
+    /// a sharded checkpoint will be loaded. Otherwise, a single-file
+    /// checkpoint is loaded.
     fn load_safetensors(&self) -> Result<Box<dyn SimpleBackend>, BoxedError> {
-        let file = self.file(SAFETENSORS_INDEX).context(IndexSnafu {
-            path: SAFETENSORS_INDEX,
+        let file = self.file(SAFETENSORS_INDEX).context(DownloadSnafu {
+            name: SAFETENSORS_INDEX,
         })?;
 
         let paths = match file {
@@ -122,7 +127,7 @@ where
 
         ensure!(
             path.is_some(),
-            NonExistentShardSnafu {
+            NonExistentCheckpointSnafu {
                 name: SAFETENSORS_SINGLE.to_string(),
             }
         );

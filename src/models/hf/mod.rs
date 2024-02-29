@@ -1,5 +1,5 @@
 mod checkpoint;
-pub use checkpoint::{HFCheckpoint, HFCheckpointError};
+pub use checkpoint::{HFCheckpointError, LoadHFCheckpoint};
 
 mod from_hf;
 pub use from_hf::{FromHF, FromHFError};
