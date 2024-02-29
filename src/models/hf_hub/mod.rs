@@ -5,13 +5,14 @@ use crate::architectures::BuildArchitecture;
 use candle_core::{DType, Device};
 use candle_nn::var_builder::SimpleBackend;
 use candle_nn::VarBuilder;
-use hf_hub::api::sync::{Api, ApiError};
-use hf_hub::{Repo, RepoType};
+use hf_hub::api::sync::ApiError;
 use serde::de::DeserializeOwned;
 use snafu::{ResultExt, Snafu};
 
 use crate::error::BoxedError;
 use crate::models::hf::{Checkpoint, CheckpointError};
+use crate::repository::hf_hub::HfHubRepo;
+use crate::repository::repo::Repo;
 use crate::util::renaming_backend::RenamingBackend;
 
 #[derive(Debug, Snafu)]
@@ -47,11 +48,17 @@ pub trait FromHF {
 
 #[derive(Debug, Snafu)]
 pub enum FromHfHubError {
+    #[snafu(display("Model configuration file does not exist"))]
+    ConfigPath,
+
     #[snafu(display("Cannot convert Hugging Face model"))]
     FromHF { source: FromHFError },
 
     #[snafu(display("Hugging Face Hub error"))]
     HFHub { source: ApiError },
+
+    #[snafu(display("Hugging Face Hub repository error"))]
+    HFHUbRepo { source: BoxedError },
 
     #[snafu(display("Cannot deserialize JSON"))]
     JSON { source: serde_json::Error },
@@ -92,16 +99,9 @@ where
         revision: Option<&str>,
         device: Device,
     ) -> Result<Self::Model, FromHfHubError> {
-        let revision = revision
-            .map(ToOwned::to_owned)
-            .unwrap_or_else(|| "main".to_string());
-        let hub_api = Api::new().context(HFHubSnafu)?;
-        let repo = hub_api.repo(Repo::with_revision(
-            name.to_string(),
-            RepoType::Model,
-            revision,
-        ));
-        let config_path = repo.get("config.json").context(HFHubSnafu)?;
+        let repo = HfHubRepo::new(name, revision).context(HFHUbRepoSnafu)?;
+        let config_file = repo.file("config.json").context(HFHUbRepoSnafu)?;
+        let config_path = config_file.ok_or(FromHfHubError::ConfigPath)?;
         let config_file = File::open(&config_path).context(OpenSnafu { path: config_path })?;
         let hf_config: HC = serde_json::from_reader(config_file).context(JSONSnafu)?;
 
