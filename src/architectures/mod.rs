@@ -3,7 +3,6 @@ use candle_nn::VarBuilder;
 
 mod causal_lm;
 
-use candle_nn::VarBuilder;
 pub use causal_lm::{BuildCausalLM, CausalLM, CausalLMOutput};
 
 mod decoder;
