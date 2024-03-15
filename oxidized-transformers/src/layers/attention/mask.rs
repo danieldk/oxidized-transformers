@@ -1,5 +1,4 @@
 use candle_core::{DType, Tensor, D};
-use candle_nn::seq;
 use snafu::{ensure, ResultExt, Snafu};
 
 /// Errors for attention masks.
