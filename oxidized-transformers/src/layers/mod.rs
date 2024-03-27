@@ -10,7 +10,7 @@ pub mod feedforward;
 
 pub mod identity;
 
-pub mod build_module;
+pub mod module;
 
 pub mod layer_norm;
 

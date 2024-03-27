@@ -1,12 +1,12 @@
 /// Feed-forward layers.
-use candle_core::{Module, ModuleT, Tensor};
+use candle_core::{Module, Tensor};
 use candle_nn::{linear, linear_no_bias, Linear, VarBuilder};
 use snafu::{ResultExt, Snafu};
 
 use crate::error::BoxedError;
 use crate::layers::activation::Activation;
-use crate::layers::build_module::BuildModule;
 use crate::layers::identity::Identity;
+use crate::layers::module::{BuildModule, ModuleT};
 
 /// Configuration for pointwise feed-forward layers.
 #[derive(Debug)]
@@ -195,7 +195,7 @@ pub struct PointwiseFeedForward {
 }
 
 impl ModuleT for PointwiseFeedForward {
-    fn forward_t(&self, xs: &Tensor, train: bool) -> Result<Tensor, candle_core::Error> {
+    fn forward_t(&self, xs: &Tensor, train: bool) -> Result<Tensor, BoxedError> {
         let xs = self.layer_norm.forward_t(xs, train)?;
 
         let output = match &self.gate {

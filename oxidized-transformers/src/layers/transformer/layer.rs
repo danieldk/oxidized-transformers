@@ -1,5 +1,5 @@
 /// Transformer building blocks.
-use candle_core::{ModuleT, Tensor};
+use candle_core::Tensor;
 use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
 
@@ -8,9 +8,9 @@ use crate::architectures::{BuildEncoderLayer, EncoderLayer};
 use crate::error::BoxedError;
 use crate::kv_cache::LayerKeyValueCache;
 use crate::layers::attention::{Attention, AttentionMask, BuildAttention, SelfAttentionConfig};
-use crate::layers::build_module::BuildModule;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::identity::Identity;
+use crate::layers::module::{BuildModule, ModuleT};
 
 /// Transformer layer configuration.
 #[derive(Debug)]
@@ -167,13 +167,13 @@ pub enum TransformerLayerError {
     CreateLayerNorm { source: BoxedError },
 
     #[snafu(display("Cannot apply point-wise feed-forward layer"))]
-    FeedForward { source: candle_core::Error },
+    FeedForward { source: BoxedError },
 
     #[snafu(display("Cannot apply parallel attention"))]
-    ParallelAttention { source: candle_core::Error },
+    ParallelAttention { source: BoxedError },
 
     #[snafu(display("Cannot apply residual connection"))]
-    Residual { source: candle_core::Error },
+    Residual { source: BoxedError },
 
     #[snafu(display("Cannot apply self-attention"))]
     SelfAttention { source: BoxedError },
@@ -244,6 +244,7 @@ impl TransformerLayer {
             input
         } else {
             residual = (residual + &attn_out)
+                .boxed()
                 .and_then(|xs| self.attn_residual_layer_norm.forward_t(&xs, train))
                 .context(ResidualSnafu)?;
             &residual
@@ -258,6 +259,7 @@ impl TransformerLayer {
         // Apply parallel attention.
         let output = if self.use_parallel_attention {
             (attn_out + ffn_out)
+                .boxed()
                 .and_then(|xs| self.parallel_attention_dropout.forward_t(&xs, train))
                 .context(ParallelAttentionSnafu)?
         } else {
@@ -265,6 +267,7 @@ impl TransformerLayer {
         };
 
         let output = (residual + output)
+            .boxed()
             .and_then(|xs| self.ffn_residual_layer_norm.forward_t(&xs, train))
             .context(ResidualSnafu)?;
 

@@ -1,8 +1,7 @@
-use candle_core::ModuleT;
 use candle_nn::{layer_norm, rms_norm, LayerNormConfig as CandleLayerNormConfig, VarBuilder};
 
 use crate::error::BoxedError;
-use crate::layers::build_module::BuildModule;
+use crate::layers::module::{BuildModule, ModuleT};
 
 /// Layer norm configuration.
 #[derive(Clone, Debug)]

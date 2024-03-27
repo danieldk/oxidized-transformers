@@ -1,8 +1,8 @@
-use candle_core::{Module, ModuleT, Tensor};
+use candle_core::Tensor;
 use candle_nn::VarBuilder;
 
 use crate::error::BoxedError;
-use crate::layers::build_module::BuildModule;
+use crate::layers::module::{BuildModule, ModuleT};
 
 /// Identity module.
 ///
@@ -18,8 +18,8 @@ impl BuildModule for Identity {
     }
 }
 
-impl Module for Identity {
-    fn forward(&self, xs: &Tensor) -> candle_core::Result<Tensor> {
+impl ModuleT for Identity {
+    fn forward_t(&self, xs: &Tensor, _train: bool) -> Result<Tensor, BoxedError> {
         Ok(xs.clone())
     }
 }

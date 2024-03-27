@@ -1,4 +1,4 @@
-use candle_core::{DType, IndexOp, Module, ModuleT, Tensor};
+use candle_core::{DType, IndexOp, Tensor};
 use candle_nn::{linear, linear_no_bias, Linear, VarBuilder};
 use snafu::{ensure, ResultExt, Snafu};
 
@@ -8,11 +8,11 @@ use crate::layers::attention::{
     Attention, AttentionMask, AttentionScorer, BuildAttention, BuildAttentionScorer, SDPAConfig,
     SDPAError,
 };
-use crate::layers::build_module::BuildModule;
 use crate::layers::embeddings::{
     QueryKeyRotaryEmbeddings, QueryKeyRotaryEmbeddingsConfig, QueryKeyRotaryEmbeddingsError,
 };
 use crate::layers::identity::Identity;
+use crate::layers::module::{BuildModule, ModuleT};
 use crate::util::tensor_ext::MinLike;
 
 /// Attention heads configuration to use in self-attention.
@@ -307,13 +307,13 @@ pub enum SelfAttentionError {
     ConcatKVCache { source: candle_core::Error },
 
     #[snafu(display("Cannot apply layer norm"))]
-    LayerNorm { source: candle_core::Error },
+    LayerNorm { source: BoxedError },
 
     #[snafu(display("Cannot apply output layer"))]
-    Output { source: candle_core::Error },
+    Output { source: BoxedError },
 
     #[snafu(display("Cannot calculate query, key, or value"))]
-    Qkv { source: candle_core::Error },
+    Qkv { source: BoxedError },
 
     #[snafu(display("Cannot chunk query, key, and value representations"))]
     QkvChunk { source: candle_core::Error },
@@ -363,10 +363,12 @@ impl Attention for SelfAttention {
 
         let (mut query, mut key, value) = match &self.qkv {
             QkvTensors::Separate { query, key, value } => {
-                self.query_key_value_separate(value, query, key, &input)?
+                self.query_key_value_separate(value, query, key, &input, train)?
             }
             QkvTensors::MergedSplitAfter { .. } => todo!(),
-            QkvTensors::MergedSplitBefore(qkv) => self.query_key_value_split_before(qkv, &input)?,
+            QkvTensors::MergedSplitBefore(qkv) => {
+                self.query_key_value_split_before(qkv, &input, train)?
+            }
         };
 
         if let Some(rotary_embeds) = &self.rotary_embeds {
@@ -395,7 +397,7 @@ impl Attention for SelfAttention {
 
         let output = self
             .output
-            .forward(&attn)
+            .forward_t(&attn, train)
             .and_then(|xs| self.dropout.forward_t(&xs, train))
             .context(OutputSnafu)?;
 
@@ -411,17 +413,18 @@ impl SelfAttention {
         query: &Linear,
         key: &Linear,
         input: &Tensor,
+        train: bool,
     ) -> Result<(Tensor, Tensor, Tensor), BoxedError> {
         let query = query
-            .forward(input)
+            .forward_t(input, train)
             .context(QkvSnafu)?
             .split_heads(self.attention_heads.n_query_heads)?;
         let key = key
-            .forward(input)
+            .forward_t(input, train)
             .context(QkvSnafu)?
             .split_heads(self.attention_heads.n_key_value_heads)?;
         let value = value
-            .forward(input)
+            .forward_t(input, train)
             .context(QkvSnafu)?
             .split_heads(self.attention_heads.n_key_value_heads)?;
         Ok((query, key, value))
@@ -434,13 +437,14 @@ impl SelfAttention {
         &self,
         qkv: &Linear,
         input: &Tensor,
+        train: bool,
     ) -> Result<(Tensor, Tensor, Tensor), BoxedError> {
         let proj = qkv
-            .forward(input)
+            .forward_t(input, train)
             .context(QkvSnafu)?
             .split_heads(self.attention_heads.n_query_heads)?;
 
-        let (_, _, _, all_heads_size) = proj.shape().dims4().context(QkvSnafu)?;
+        let (_, _, _, all_heads_size) = proj.shape().dims4().boxed().context(QkvSnafu)?;
         let head_size = all_heads_size / 3;
 
         // Similar to chunk, but avoid intermediate Vec.

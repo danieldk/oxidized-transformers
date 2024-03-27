@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use candle_core::{ModuleT, Tensor, D};
+use candle_core::{Tensor, D};
 use candle_nn::ops::softmax;
 use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
@@ -12,8 +12,8 @@ use crate::layers::attention::{
     AttentionScorer, BuildAttentionScorer, CausalMaskError,
 };
 use crate::layers::attention::{AttentionMaskError, CausalMask};
-use crate::layers::build_module::BuildModule;
 use crate::layers::identity::Identity;
+use crate::layers::module::{BuildModule, ModuleT};
 use crate::ops::nonzero::NonzeroError;
 
 #[cfg(feature = "flash-attn")]
@@ -119,7 +119,7 @@ pub enum SDPAError {
     CausalMask { source: CausalMaskError },
 
     #[snafu(display("Cannot apply dropout"))]
-    Dropout { source: candle_core::Error },
+    Dropout { source: BoxedError },
 
     #[snafu(display("Cannot apply flash attention"))]
     FlashAttention { source: candle_core::Error },

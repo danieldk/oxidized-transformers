@@ -1,11 +1,11 @@
-use candle_core::{Module, ModuleT, Tensor};
+use candle_core::{Module, Tensor};
 use candle_nn::{embedding, linear, Embedding, Linear, VarBuilder};
 use snafu::{ResultExt, Snafu};
 
 use crate::architectures::{BuildEmbeddings, Embeddings};
 use crate::error::BoxedError;
-use crate::layers::build_module::BuildModule;
 use crate::layers::identity::Identity;
+use crate::layers::module::{BuildModule, ModuleT};
 
 /// Configuration for transformer embedding layer.
 #[derive(Debug)]
@@ -219,7 +219,7 @@ pub enum TransformerEmbeddingsError {
     Construction { source: candle_core::Error },
 
     #[snafu(display("Cannot normalize embeddings or apply dropout"))]
-    NormalizeDropout { source: candle_core::Error },
+    NormalizeDropout { source: BoxedError },
 
     #[snafu(display("Cannot lookup piece embeddings"))]
     PieceEmbeddings { source: candle_core::Error },
@@ -228,7 +228,7 @@ pub enum TransformerEmbeddingsError {
     PositionEmbeddings { source: candle_core::Error },
 
     #[snafu(display("Cannot project embeddings to hidden size"))]
-    Projection { source: candle_core::Error },
+    Projection { source: BoxedError },
 
     #[snafu(display("Cannot lookup type embeddings"))]
     TypeEmbeddings { source: candle_core::Error },
@@ -310,6 +310,7 @@ impl Embeddings for TransformerEmbeddings {
         if let Some(projection) = &self.projection {
             embeddings = projection
                 .forward(&embeddings)
+                .boxed()
                 .and_then(|xs| self.projection_layer_norm.forward_t(&xs, train))
                 .and_then(|xs| self.projection_dropout.forward_t(&xs, train))
                 .context(ProjectionSnafu)?;

@@ -1,5 +1,5 @@
 /// Transformer decoder.
-use candle_core::{ModuleT, Tensor};
+use candle_core::Tensor;
 use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
 
@@ -8,8 +8,8 @@ use crate::architectures::{BuildDecoderLayer, Decoder, DecoderLayer, DecoderOutp
 use crate::error::BoxedError;
 use crate::kv_cache::{KeyValueCache, LayerKeyValueCache};
 use crate::layers::attention::AttentionMask;
-use crate::layers::build_module::BuildModule;
 use crate::layers::identity::Identity;
+use crate::layers::module::{BuildModule, ModuleT};
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
 
 /// Transformer decoder configuration.
@@ -110,7 +110,7 @@ pub enum TransformerDecoderError {
     Embedding { source: BoxedError },
 
     #[snafu(display("Cannot construct or apply layer norm"))]
-    LayerNorm { source: candle_core::Error },
+    LayerNorm { source: BoxedError },
 
     #[snafu(display("Cannot apply transformer layer"))]
     TransformerLayer { source: BoxedError },

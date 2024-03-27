@@ -1,9 +1,8 @@
-use candle_core::ModuleT;
 use candle_nn::{Activation as CandleActivation, VarBuilder};
 use serde::{Deserialize, Serialize};
 
 use crate::error::BoxedError;
-use crate::layers::build_module::BuildModule;
+use crate::layers::module::{BuildModule, ModuleT};
 
 /// Activation functions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
