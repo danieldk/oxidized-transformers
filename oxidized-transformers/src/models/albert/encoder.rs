@@ -20,6 +20,7 @@ use crate::layers::layer_norm::LayerNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
 use crate::models::albert::AlbertLayerGroupConfig;
 use crate::models::hf::FromHF;
+use crate::varbuilder::VarBuilder;
 
 /// HF ALBERT model types
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -189,7 +190,7 @@ impl Default for AlbertEncoderConfig {
 impl BuildArchitecture for AlbertEncoderConfig {
     type Architecture = AlbertEncoder;
 
-    fn build(&self, vb: candle_nn::VarBuilder) -> Result<Self::Architecture, BoxedError> {
+    fn build(&self, vb: VarBuilder) -> Result<Self::Architecture, BoxedError> {
         let embeddings = self
             .embeddings
             .build(vb.push_prefix("embeddings"))

@@ -1,5 +1,4 @@
 use candle_core::{DType, IndexOp, Tensor};
-use candle_nn::{linear, linear_no_bias, Linear, VarBuilder};
 use snafu::{ensure, ResultExt, Snafu};
 
 use crate::error::BoxedError;
@@ -12,8 +11,10 @@ use crate::layers::embeddings::{
     QueryKeyRotaryEmbeddings, QueryKeyRotaryEmbeddingsConfig, QueryKeyRotaryEmbeddingsError,
 };
 use crate::layers::identity::Identity;
+use crate::layers::linear::{linear, linear_no_bias, Linear};
 use crate::layers::module::{BuildModule, ModuleT};
 use crate::util::tensor_ext::MinLike;
+use crate::varbuilder::VarBuilder;
 
 /// Attention heads configuration to use in self-attention.
 #[derive(Clone, Debug, Eq, PartialEq)]

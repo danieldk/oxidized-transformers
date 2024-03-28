@@ -1,5 +1,4 @@
 use candle_core::{ModuleT, Tensor};
-use candle_nn::{linear_no_bias, VarBuilder};
 use snafu::{ResultExt, Snafu};
 
 use crate::architectures::BuildArchitecture;
@@ -7,7 +6,9 @@ use crate::architectures::{BuildDecoder, CausalLM, CausalLMOutput, Decoder, Laye
 use crate::error::BoxedError;
 use crate::kv_cache::KeyValueCache;
 use crate::layers::attention::AttentionMask;
+use crate::layers::linear::linear_no_bias;
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
+use crate::varbuilder::VarBuilder;
 
 /// Transformer causal language model configuration.
 #[derive(Debug)]

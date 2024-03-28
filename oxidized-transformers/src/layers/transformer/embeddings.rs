@@ -1,11 +1,13 @@
 use candle_core::{Module, Tensor};
-use candle_nn::{embedding, linear, Embedding, Linear, VarBuilder};
 use snafu::{ResultExt, Snafu};
 
 use crate::architectures::{BuildEmbeddings, Embeddings};
 use crate::error::BoxedError;
+use crate::layers::embedding::{embedding, Embedding};
 use crate::layers::identity::Identity;
+use crate::layers::linear::{linear, Linear};
 use crate::layers::module::{BuildModule, ModuleT};
+use crate::varbuilder::VarBuilder;
 
 /// Configuration for transformer embedding layer.
 #[derive(Debug)]

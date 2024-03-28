@@ -1,12 +1,12 @@
 use candle_core::{DType, Device};
 use candle_nn::var_builder::SimpleBackend;
-use candle_nn::VarBuilder;
 use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
 
 use crate::architectures::BuildArchitecture;
 use crate::error::BoxedError;
 use crate::util::renaming_backend::RenamingBackend;
+use crate::varbuilder::VarBuilder;
 
 #[derive(Debug, Snafu)]
 pub enum FromHFError {

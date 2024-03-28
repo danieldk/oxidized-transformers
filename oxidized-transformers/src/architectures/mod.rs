@@ -1,6 +1,4 @@
 /// Traits for model architectures.
-use candle_nn::VarBuilder;
-
 mod causal_lm;
 
 pub use causal_lm::{BuildCausalLM, CausalLM, CausalLMOutput};
@@ -17,6 +15,7 @@ pub use embeddings::{BuildEmbeddings, Embeddings};
 mod output;
 
 use crate::error::BoxedError;
+use crate::varbuilder::VarBuilder;
 pub use output::LayerOutputs;
 
 /// Trait for building model architectures.

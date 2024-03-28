@@ -1,8 +1,9 @@
 use std::sync::RwLock;
 
 use candle_core::{DType, IndexOp, Tensor};
-use candle_nn::VarBuilder;
 use snafu::{ensure, ResultExt, Snafu};
+
+use crate::varbuilder::VarBuilder;
 
 /// Configuration for rotary embeddings.
 pub struct RotaryEmbeddingsConfig {

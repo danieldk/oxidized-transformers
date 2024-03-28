@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use candle_core::Tensor;
-use candle_nn::VarBuilder;
 
 mod mask;
 pub use mask::{AttentionMask, AttentionMaskError};
@@ -20,6 +19,7 @@ pub use self_attention::{
 
 use crate::error::BoxedError;
 use crate::kv_cache::LayerKeyValueCache;
+use crate::varbuilder::VarBuilder;
 
 /// Trait for attention modules.
 pub trait Attention {

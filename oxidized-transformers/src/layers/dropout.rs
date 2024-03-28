@@ -1,7 +1,8 @@
-use candle_nn::{Dropout, VarBuilder};
+use candle_nn::Dropout;
 
 use crate::error::BoxedError;
 use crate::layers::module::{BuildModule, ModuleT};
+use crate::varbuilder::VarBuilder;
 
 /// Dropout configuration.
 #[derive(Clone, Debug)]

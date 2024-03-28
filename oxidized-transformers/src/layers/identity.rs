@@ -1,8 +1,8 @@
 use candle_core::Tensor;
-use candle_nn::VarBuilder;
 
 use crate::error::BoxedError;
 use crate::layers::module::{BuildModule, ModuleT};
+use crate::varbuilder::VarBuilder;
 
 /// Identity module.
 ///

@@ -2,7 +2,6 @@ use std::cell::Cell;
 
 use candle_core::{Tensor, D};
 use candle_nn::ops::softmax;
-use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
 
 use crate::error::BoxedError;
@@ -15,6 +14,7 @@ use crate::layers::attention::{AttentionMaskError, CausalMask};
 use crate::layers::identity::Identity;
 use crate::layers::module::{BuildModule, ModuleT};
 use crate::ops::nonzero::NonzeroError;
+use crate::varbuilder::VarBuilder;
 
 #[cfg(feature = "flash-attn")]
 use candle_core::DType;

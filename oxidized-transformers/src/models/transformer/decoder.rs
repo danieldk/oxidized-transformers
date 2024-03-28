@@ -1,6 +1,5 @@
 /// Transformer decoder.
 use candle_core::Tensor;
-use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
 
 use crate::architectures::{BuildArchitecture, BuildEmbeddings, Embeddings};
@@ -11,6 +10,7 @@ use crate::layers::attention::AttentionMask;
 use crate::layers::identity::Identity;
 use crate::layers::module::{BuildModule, ModuleT};
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
+use crate::varbuilder::VarBuilder;
 
 /// Transformer decoder configuration.
 #[derive(Debug)]

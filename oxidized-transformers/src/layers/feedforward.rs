@@ -1,12 +1,13 @@
 /// Feed-forward layers.
 use candle_core::{Module, Tensor};
-use candle_nn::{linear, linear_no_bias, Linear, VarBuilder};
 use snafu::{ResultExt, Snafu};
 
 use crate::error::BoxedError;
 use crate::layers::activation::Activation;
 use crate::layers::identity::Identity;
+use crate::layers::linear::{linear, linear_no_bias, Linear};
 use crate::layers::module::{BuildModule, ModuleT};
+use crate::varbuilder::VarBuilder;
 
 /// Configuration for pointwise feed-forward layers.
 #[derive(Debug)]

@@ -1,9 +1,9 @@
 use candle_core::{IndexOp, Tensor};
-use candle_nn::VarBuilder;
 use snafu::{ensure, ResultExt, Snafu};
 
 use crate::kv_cache::LayerKeyValueCache;
 use crate::layers::embeddings::{RotaryEmbeddings, RotaryEmbeddingsConfig, RotaryEmbeddingsError};
+use crate::varbuilder::VarBuilder;
 
 /// Configuration for query-key rotary embeddings.
 #[derive(Debug, Clone)]
@@ -238,19 +238,18 @@ impl QueryKeyRotaryEmbeddings {
 #[cfg(test)]
 mod tests {
     use candle_core::{DType, Device, Tensor};
-    use candle_nn::VarBuilder;
     use ndarray::array;
     use snafu::{report, ResultExt, Whatever};
 
     use crate::kv_cache::LayerKeyValueCache;
-
     use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
     use crate::util::tests::assert_tensor_eq;
+    use crate::varbuilder::VarBuilder;
 
     #[test]
     fn query_key_rotary_has_correct_output() {
         for initial_len in [10, 2] {
-            let vb = candle_nn::VarBuilder::zeros(DType::F32, &Device::Cpu);
+            let vb = VarBuilder::zeros(DType::F32, &Device::Cpu);
             let rotary = QueryKeyRotaryEmbeddingsConfig::default()
                 .head_width(4)
                 .seq_len(initial_len)
@@ -298,7 +297,7 @@ mod tests {
     #[test]
     fn query_key_rotary_with_positions_has_correct_output() {
         for initial_len in [10, 2] {
-            let vb = candle_nn::VarBuilder::zeros(DType::F32, &Device::Cpu);
+            let vb = VarBuilder::zeros(DType::F32, &Device::Cpu);
             let rotary = QueryKeyRotaryEmbeddingsConfig::default()
                 .head_width(4)
                 .seq_len(initial_len)

@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
 use candle_core::{ModuleT as CandleModuleT, Tensor};
-use candle_nn::VarBuilder;
 use snafu::ResultExt;
 
 use crate::error::BoxedError;
+use crate::varbuilder::VarBuilder;
 
 /// Module in a trainable model.
 ///

@@ -1,11 +1,11 @@
 use std::fmt::Debug;
 
 use candle_core::Tensor;
-use candle_nn::VarBuilder;
 
 use crate::architectures::{BuildArchitecture, DecoderOutput, LayerOutputs};
 use crate::error::BoxedError;
 use crate::layers::attention::AttentionMask;
+use crate::varbuilder::VarBuilder;
 
 /// Causal language model output.
 pub struct CausalLMOutput {

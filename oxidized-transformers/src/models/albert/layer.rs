@@ -5,6 +5,7 @@ use crate::{
     architectures::{BuildEncoderLayer, EncoderLayer},
     error::BoxedError,
     layers::{attention::AttentionMask, transformer::TransformerLayerConfig},
+    varbuilder::VarBuilder,
 };
 
 /// ALBERT layer group errors.
@@ -53,7 +54,7 @@ impl Default for AlbertLayerGroupConfig {
 impl BuildEncoderLayer for AlbertLayerGroupConfig {
     fn build_encoder_layer(
         &self,
-        vb: candle_nn::VarBuilder,
+        vb: VarBuilder,
     ) -> Result<Box<dyn crate::architectures::EncoderLayer>, crate::error::BoxedError> {
         let layers = (0..self.n_layers_per_group)
             .map({

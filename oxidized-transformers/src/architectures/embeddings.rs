@@ -1,8 +1,8 @@
 use candle_core::Tensor;
-use candle_nn::VarBuilder;
 use std::fmt::Debug;
 
 use crate::error::BoxedError;
+use crate::varbuilder::VarBuilder;
 
 /// Trait for embedding layers.
 pub trait Embeddings {

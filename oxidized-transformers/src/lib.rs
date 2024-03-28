@@ -7,3 +7,4 @@ pub mod ops;
 pub mod repository;
 pub mod tokenizers;
 pub mod util;
+pub mod varbuilder;

@@ -1,6 +1,5 @@
 /// Transformer building blocks.
 use candle_core::Tensor;
-use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
 
 use crate::architectures::{BuildDecoderLayer, DecoderLayer};
@@ -11,6 +10,7 @@ use crate::layers::attention::{Attention, AttentionMask, BuildAttention, SelfAtt
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::identity::Identity;
 use crate::layers::module::{BuildModule, ModuleT};
+use crate::varbuilder::VarBuilder;
 
 /// Transformer layer configuration.
 #[derive(Debug)]

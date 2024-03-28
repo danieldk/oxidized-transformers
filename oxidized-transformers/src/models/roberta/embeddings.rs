@@ -1,10 +1,10 @@
 use candle_core::{DType, Tensor};
-use candle_nn::VarBuilder;
 use snafu::{ResultExt, Snafu};
 
 use crate::architectures::{BuildEmbeddings, Embeddings};
 use crate::error::BoxedError;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerEmbeddingsError};
+use crate::varbuilder::VarBuilder;
 
 #[derive(Debug)]
 /// RoBERTa embeddings configuration.

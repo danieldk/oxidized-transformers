@@ -4,11 +4,15 @@ pub mod attention;
 
 pub mod dropout;
 
+pub mod embedding;
+
 pub mod embeddings;
 
 pub mod feedforward;
 
 pub mod identity;
+
+pub mod linear;
 
 pub mod module;
 

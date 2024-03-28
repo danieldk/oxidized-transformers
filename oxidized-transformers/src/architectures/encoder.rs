@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 
 use candle_core::Tensor;
-use candle_nn::VarBuilder;
 
 use crate::architectures::output::LayerOutputs;
 use crate::architectures::BuildArchitecture;
 use crate::error::BoxedError;
 use crate::layers::attention::AttentionMask;
+use crate::varbuilder::VarBuilder;
 
 /// Encoder output.
 pub struct EncoderOutput {
