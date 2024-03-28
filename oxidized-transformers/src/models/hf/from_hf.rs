@@ -1,3 +1,7 @@
+use std::borrow::Borrow;
+use std::collections::HashMap;
+
+use candle_core::quantized::gguf_file::Value;
 use candle_core::{DType, Device};
 use candle_nn::var_builder::SimpleBackend;
 use serde::{Deserialize, Serialize};
@@ -6,7 +10,7 @@ use snafu::{ResultExt, Snafu};
 use crate::architectures::BuildArchitecture;
 use crate::error::BoxedError;
 use crate::util::renaming_backend::RenamingBackend;
-use crate::varbuilder::VarBuilder;
+use crate::varbuilder::{QVarBuilder, VarBuilder};
 
 #[derive(Debug, Snafu)]
 pub enum FromHFError {
@@ -93,4 +97,38 @@ impl<T> HFConfigWithDType<T> {
             TorchDType::Float32 => DType::F32,
         }
     }
+}
+
+/// Models that can be loaded from Huggingface transformers checkpoints.
+pub trait FromHFGGUF {
+    /// Model configuration.
+    type Config: BuildArchitecture<Architecture = Self::Model>;
+
+    /// The type of model that is constructed.
+    ///
+    /// Note that this is different from `Self`. `Self` is typically a
+    /// unit struct that only implements various loading strategies.
+    /// `Model` is a concrete model type such as `TransformerDecoder`.
+    type Model;
+
+    /// Construct a model from the metadata stored in the GGUF checkpoint.
+    fn config_from_metadata(metadata: &HashMap<String, Value>) -> Self::Config;
+
+    /// Construct a model from an HF model configuration and parameter backend.
+    ///
+    /// * `hf_config` - The Hugging Face transformers model configuration.
+    /// * `backend` - The parameter store backend.
+    /// * `device` - The device to place the model on.
+    fn from_hf_gguf(vb: QVarBuilder) -> Result<Self::Model, FromHFError> {
+        let config = Self::config_from_metadata(vb.metadata().borrow());
+        config
+            .build(VarBuilder::Quantized(vb))
+            .context(BuildModelSnafu)
+    }
+
+    /// Create a parameter renaming function.
+    ///
+    /// This method should return a function that renames Oxidized Transformers
+    /// parameter names to Hugging Face transformers parameter names.
+    fn rename_parameters() -> impl Fn(&str) -> String + Send + Sync;
 }

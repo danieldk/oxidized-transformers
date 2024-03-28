@@ -12,6 +12,9 @@ use crate::models::hf::from_hf::{FromHF, FromHFError};
 use crate::models::hf::HFConfigWithDType;
 use crate::repository::hf_hub::HfHubRepo;
 use crate::repository::repo::Repo;
+use crate::varbuilder::QVarBuilder;
+
+use super::from_hf::FromHFGGUF;
 
 /// Errors for loading a model from Hugging Face Hub.
 #[derive(Debug, Snafu)]
@@ -33,6 +36,9 @@ pub enum FromHfHubError {
 
     #[snafu(display("Cannot open or load checkpoint"))]
     LoadCheckpoint { source: BoxedError },
+
+    #[snafu(display("Cannot open or load checkpoint"))]
+    LoadQuantizedCheckpoint { source: candle_core::Error },
 
     #[snafu(display("Cannot open file for reading: {path:?}"))]
     Open {
@@ -83,5 +89,49 @@ where
         let backend = repo.load_hf_checkpoint().context(LoadCheckpointSnafu)?;
 
         Self::from_hf(hf_config, backend, device).context(FromHFSnafu)
+    }
+}
+
+/// Trait for loading GGUF models from Hugging Face Hub.
+pub trait FromHFHubGGUF
+where
+    Self: Sized,
+{
+    type Model;
+
+    /// Load a model from Hugging Face Hub.
+    ///
+    /// * `name` - Model repository name.
+    /// * `revision` - Model revision. If `None`, the main branch is used.
+    /// * `device` - The device to place the model on.
+    fn from_hf_hub_gguf(
+        name: &str,
+        revision: Option<&str>,
+        filename: &str,
+        device: &Device,
+    ) -> Result<Self::Model, FromHfHubError>;
+}
+
+impl<HF, C> FromHFHubGGUF for HF
+where
+    HF: FromHFGGUF<Config = C>,
+{
+    type Model = HF::Model;
+
+    fn from_hf_hub_gguf(
+        name: &str,
+        revision: Option<&str>,
+        filename: &str,
+        device: &Device,
+    ) -> Result<Self::Model, FromHfHubError> {
+        let repo = HfHubRepo::new(name, revision).context(HFHubRepoSnafu)?;
+
+        let checkpoint_path = repo.file(filename).context(HFHubRepoSnafu)?;
+        let checkpoint_path = checkpoint_path.ok_or(FromHfHubError::ConfigPath)?;
+
+        let vb = QVarBuilder::from_gguf(checkpoint_path, device)
+            .context(LoadQuantizedCheckpointSnafu)?;
+
+        Self::from_hf_gguf(vb).context(FromHFSnafu)
     }
 }

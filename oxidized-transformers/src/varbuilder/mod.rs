@@ -1,9 +1,13 @@
 use candle_core::{DType, Device, Shape, Tensor};
 use candle_nn::{var_builder::SimpleBackend, Init, VarBuilder as CandleVarBuilder};
 
+mod quantized;
+pub use quantized::VarBuilder as QVarBuilder;
+
 #[derive(Clone)]
 pub enum VarBuilder<'a> {
     NonQuantized(CandleVarBuilder<'a>),
+    Quantized(QVarBuilder),
 }
 
 impl<'a> VarBuilder<'a> {
@@ -25,6 +29,7 @@ impl<'a> VarBuilder<'a> {
     pub fn dtype(&self) -> DType {
         match self {
             VarBuilder::NonQuantized(vb) => vb.dtype(),
+            VarBuilder::Quantized(_vb) => DType::F32,
         }
     }
 
@@ -32,6 +37,7 @@ impl<'a> VarBuilder<'a> {
     pub fn push_prefix<S: ToString>(&self, s: S) -> Self {
         match self {
             VarBuilder::NonQuantized(vb) => VarBuilder::NonQuantized(vb.push_prefix(s)),
+            VarBuilder::Quantized(vb) => VarBuilder::Quantized(vb.push_prefix(s)),
         }
     }
 
@@ -39,6 +45,7 @@ impl<'a> VarBuilder<'a> {
     pub fn device(&self) -> &Device {
         match self {
             VarBuilder::NonQuantized(vb) => vb.device(),
+            VarBuilder::Quantized(vb) => vb.device(),
         }
     }
 
@@ -47,9 +54,7 @@ impl<'a> VarBuilder<'a> {
     /// - `s` - Shape of the tensor.
     /// - `name` - Name of the tensor.
     pub fn get<S: Into<Shape>>(&self, s: S, name: &str) -> Result<Tensor, candle_core::Error> {
-        match self {
-            VarBuilder::NonQuantized(vb) => vb.get(s, name),
-        }
+        self.get_with_init(s, name, Default::default())
     }
 
     /// Retrieve the tensor.
@@ -67,6 +72,7 @@ impl<'a> VarBuilder<'a> {
     ) -> Result<Tensor, candle_core::Error> {
         match self {
             VarBuilder::NonQuantized(vb) => vb.get_with_hints(s, name, init),
+            VarBuilder::Quantized(vb) => vb.get(s, name).and_then(|xs| xs.dequantize(vb.device())),
         }
     }
 }

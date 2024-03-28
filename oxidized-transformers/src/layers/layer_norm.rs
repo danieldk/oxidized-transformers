@@ -232,7 +232,7 @@ pub fn rms_norm(size: usize, eps: f64, vb: VarBuilder) -> Result<RmsNorm, candle
     let config = LayerNormConfig {
         eps,
         remove_mean: false,
-        size: size,
+        size,
         affine: false,
     };
     Ok(RmsNorm(layer_norm(config, vb)?))
