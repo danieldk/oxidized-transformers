@@ -112,7 +112,7 @@ pub trait FromHFGGUF {
     type Model;
 
     /// Construct a model from the metadata stored in the GGUF checkpoint.
-    fn config_from_metadata(metadata: &HashMap<String, Value>) -> Self::Config;
+    fn config_from_metadata(metadata: &HashMap<String, Value>) -> Result<Self::Config, BoxedError>;
 
     /// Construct a model from an HF model configuration and parameter backend.
     ///
@@ -120,7 +120,8 @@ pub trait FromHFGGUF {
     /// * `backend` - The parameter store backend.
     /// * `device` - The device to place the model on.
     fn from_hf_gguf(vb: QVarBuilder) -> Result<Self::Model, FromHFError> {
-        let config = Self::config_from_metadata(vb.metadata().borrow());
+        let config =
+            Self::config_from_metadata(vb.metadata().borrow()).context(ConvertConfigSnafu)?;
         config
             .build(VarBuilder::Quantized(vb))
             .context(BuildModelSnafu)

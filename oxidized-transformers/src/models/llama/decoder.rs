@@ -1,7 +1,9 @@
 use std::sync::OnceLock;
 
+use candle_core::quantized::gguf_file::Value;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use snafu::{whatever, FromString, ResultExt, Snafu, Whatever};
 
 use crate::error::BoxedError;
 use crate::layers::activation::Activation;
@@ -10,7 +12,7 @@ use crate::layers::embeddings::QueryKeyRotaryEmbeddingsConfig;
 use crate::layers::feedforward::PointwiseFeedForwardConfig;
 use crate::layers::layer_norm::RMSNormConfig;
 use crate::layers::transformer::{TransformerEmbeddingsConfig, TransformerLayerConfig};
-use crate::models::hf::FromHF;
+use crate::models::hf::{FromHF, FromHFGGUF};
 use crate::models::transformer::{TransformerDecoder, TransformerDecoderConfig};
 
 /// Llama decoder (Touvron et al., 2023).
@@ -138,6 +140,57 @@ impl FromHF for LlamaDecoder {
             name = layer_re.replace(&name, "layers.$1").to_string();
             name
         }
+    }
+}
+
+#[derive(Debug, Snafu)]
+enum FromHFGGUFError {
+    #[snafu(display("Metadata key not found: {}", key))]
+    UnknownMetadataKey { key: String },
+}
+
+impl FromHFGGUF for LlamaDecoder {
+    type Config = TransformerDecoderConfig;
+
+    type Model = TransformerDecoder;
+
+    fn config_from_metadata(
+        metadata: &std::collections::HashMap<String, Value>,
+    ) -> Result<Self::Config, BoxedError> {
+        let get_or_fail = |key: &str| {
+            metadata
+                .get(key)
+                .ok_or(FromHFGGUFError::UnknownMetadataKey {
+                    key: key.to_string(),
+                })
+        };
+
+        let num_attention_heads = get_or_fail("llama.attention.head_count")?.to_u64()? as usize;
+        let num_key_value_heads = get_or_fail("llama.attention.head_count_kv")?.to_u64()? as usize;
+        let num_hidden_layers = get_or_fail("llama.block_count")?.to_u64()? as usize;
+        let rms_norm_eps = get_or_fail("llama.attention.layer_norm_rms_epsilon")?.to_f32()?;
+        let hidden_size = get_or_fail("llama.embedding_length")?.to_u64()? as usize;
+
+        let config = HFLlamaDecoderConfig {
+            hidden_act: todo!(),
+            hidden_size: hidden_size,
+            initializer_range: todo!(),
+            intermediate_size: todo!(),
+            max_position_embeddings: todo!(),
+            model_type: HfModelType::Llama,
+            num_attention_heads,
+            num_hidden_layers,
+            num_key_value_heads,
+            rms_norm_eps,
+            tie_word_embeddings: false,
+            vocab_size: todo!(),
+        };
+
+        config.try_into()
+    }
+
+    fn rename_parameters() -> impl Fn(&str) -> String + Send + Sync {
+        <LlamaDecoder as FromHF>::rename_parameters()
     }
 }
 
